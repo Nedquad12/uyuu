@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize bot with your token
-BOT_TOKEN ="7900107098:AAGG2vD2lF8X0ilVGa2Fzoja9fi04RwWCb0"
+BOT_TOKEN ="7900107098:AAFDXl7HH0cAeqnSIr_B1P-bA29eULRkwT4"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 class TelegramStockDataViewer:
