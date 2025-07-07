@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize bot with your token
-BOT_TOKEN ="7900107098:AAHaOPDdehFIhw9QpNPuLRg-K9Hbw5LBgdI"
+BOT_TOKEN ="7900107098:AAFYcCclDfzkGu2iXBskgChLFxpZ0rZmlvE"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 class TelegramStockDataViewer:
@@ -853,7 +853,8 @@ if __name__ == "__main__":
     else:
         print(f"✅ Loaded {data_info['total_records']} records from {data_info['unique_codes']} stocks")
         print(f"📅 Date range: {data_info['date_range']}")
-    
+
+    print("📝 Remember to replace BOT_TOKEN with your actual bot token")
     bot.infinity_polling()
     
 
