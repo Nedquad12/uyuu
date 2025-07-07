@@ -500,18 +500,19 @@ def send_welcome(message):
 
 *Available commands:*
 /start - Show this help message
-/search \\[CODE\\] - Search for stock data
-/export \\[CODE\\] - Export data to Excel
+/search [CODE] - Search for stock data
+/export [CODE] - Export data to Excel
 /chart - Create line charts
 /status - Check current status
 /reload - Reload data from folder
 /codes - Show all available stock codes
-/m \\[CODE\\] - Show margin transaction
+/m [CODE] - Show margin transaction
 
 *Usage Examples:*
-- /search BBCA` - Search for BBCA stock
-- /export BBNI` - Export BBNI data
-- /chart TLKM` - Create chart for TLKM
+- /search BBCA - Search for BBCA stock
+- /export BBNI - Export BBNI data
+- /chart TLKM - Create chart for TLKM
+- /m BBRI - Create chart trannsaction margin BBRI
 
 Twitter Owner: https://x.com/saberial_link/
 Telegram Owner: @Rendanggedang
@@ -831,6 +832,9 @@ def show_status(message):
 - /chart [CODE] - Create charts
 - /codes - Show all stock codes
 - /m - Show margin transaction
+
+Twitter Owner: https://x.com/saberial_link/
+Telegram Owner: @Rendanggedang
         """
     else:
         regular = data_info['regular']
