@@ -67,7 +67,7 @@ class TelegramStockDataViewer:
         self.margin_folder = "/home/nedquad12/uyuu/margin"
         self.margin_df = None
         self.margin_fields = ['Volume', 'Nilai', 'Frekuensi']
-        self.watchlist_folders = "/home/nedquad12/uyuu/wl"
+        self.watchlist_folder = "/home/nedquad12/uyuu/wl"
         
         # BlackRock folders
         self.blackrock_folders = {
