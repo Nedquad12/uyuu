@@ -494,11 +494,11 @@ def send_welcome(message):
         data_status = f"✅ Data loaded: {regular['total_records']} records, {regular['unique_codes']} stocks\n📅 Date range: {regular['date_range']}"
     
     help_text = f"""
-🤖 <b>Stock Data Viewer Bot<b>
+🤖 <b>Stock Data Viewer Bot</b>
 
 {data_status}
 
-<b>Available commands:<b>
+<b>Available commands:</b>
 /start - Show this help message
 /search [CODE] - Search for stock data
 /export [CODE] - Export data to Excel
@@ -592,7 +592,7 @@ def margin_trading(message):
         bot.send_photo(
             message.chat.id,
             chart_buffer,
-            caption=f"📊 Margin Trading Analysis for {code}\n📈 Volume, Nilai, Frekuensi"
+            caption=f"📊 Transaction Margin for {code}\n📈 Volume, Nilai, Frekuensi"
         )
         
     except Exception as e:
@@ -821,11 +821,11 @@ def show_status(message):
     
     if isinstance(data_info['regular'], str):
         status_text = f"""
-📊 <b>Current Status<b>
+📊 <b>Current Status</b>
 
 ❌ No data loaded
 
-<b>Available commands:<b>
+<b>Available commands:</b>
 - /reload - Reload data (No need /start)
 - /search [CODE] - Search stock data
 - /export [CODE] - Export to Excel
@@ -839,7 +839,7 @@ Telegram Owner: @Rendanggedang
     else:
         regular = data_info['regular']
         status_text = f"""
-📊 <b>Current Status<b>
+📊 <b>Current Status</b>
 
 ✅ Data loaded successfully
 📝 Total records: {regular['total_records']}
