@@ -494,11 +494,11 @@ def send_welcome(message):
         data_status = f"✅ Data loaded: {regular['total_records']} records, {regular['unique_codes']} stocks\n📅 Date range: {regular['date_range']}"
     
     help_text = f"""
-🤖 *Stock Data Viewer Bot*
+🤖 <b>Stock Data Viewer Bot<b>
 
 {data_status}
 
-*Available commands:*
+<b>Available commands:<b>
 /start - Show this help message
 /search [CODE] - Search for stock data
 /export [CODE] - Export data to Excel
@@ -508,7 +508,7 @@ def send_welcome(message):
 /codes - Show all available stock codes
 /m [CODE] - Show margin transaction
 
-*Usage Examples:*
+<Usage Examples:>
 - /search BBCA - Search for BBCA stock
 - /export BBNI - Export BBNI data
 - /chart TLKM - Create chart for TLKM
@@ -517,7 +517,7 @@ def send_welcome(message):
 Twitter Owner: https://x.com/saberial_link/
 Telegram Owner: @Rendanggedang
     """
-    bot.reply_to(message, help_text, parse_mode='Markdown')
+    bot.reply_to(message, help_text, parse_mode='HTML')
 
 @bot.message_handler(commands=['reload'])
 def reload_data(message):
@@ -821,11 +821,11 @@ def show_status(message):
     
     if isinstance(data_info['regular'], str):
         status_text = f"""
-📊 *Current Status*
+📊 <b>Current Status<b>
 
 ❌ No data loaded
 
-*Available commands:*
+<b>Available commands:<b>
 - /reload - Reload data (No need /start)
 - /search [CODE] - Search stock data
 - /export [CODE] - Export to Excel
@@ -839,7 +839,7 @@ Telegram Owner: @Rendanggedang
     else:
         regular = data_info['regular']
         status_text = f"""
-📊 *Current Status*
+📊 <b>Current Status<b>
 
 ✅ Data loaded successfully
 📝 Total records: {regular['total_records']}
@@ -847,7 +847,7 @@ Telegram Owner: @Rendanggedang
 📅 Date range: {regular['date_range']}
         """
     
-    bot.reply_to(message, status_text, parse_mode='Markdown')
+    bot.reply_to(message, status_text, parse_mode='HTML')
 
 
 if __name__ == "__main__":
