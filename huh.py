@@ -306,7 +306,7 @@ class TradingIndicator:
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         
         # Hanya tampilkan Final Score
-        ax.plot(data.index, final_score, label='Final Score', color='red', linewidth=2)
+        ax.plot(data.index, final_score, label='Final Value', color='red', linewidth=2)
         ax.fill_between(data.index, final_score, alpha=0.3, color='red')
         
         # Tambahkan garis referensi
@@ -316,7 +316,7 @@ class TradingIndicator:
         ax.axhline(y=-2, color='orange', linestyle='--', alpha=0.7, label='Sell Level')
         ax.axhline(y=-5, color='red', linestyle='--', alpha=0.7, label='Strong Sell Level')
         
-        ax.set_title(f'{symbol} - {timeframe} Trading Score', fontsize=16, fontweight='bold')
+        ax.set_title(f'{symbol} - {timeframe} Trading Value', fontsize=16, fontweight='bold')
         ax.set_ylabel('Score', fontsize=12)
         ax.set_xlabel('Date', fontsize=12)
         ax.legend(loc='upper left')
@@ -370,10 +370,11 @@ async def cmd_calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         timeframes = {
             'Daily': {'period': '1d', 'days': 15},
             'Weekly': {'period': '1wk', 'days': 5*7},  # 40 minggu
-            'Monthly': {'period': '1mo', 'days': 2*30}  # 60 bulan
+            'Monthly': {'period': '1mo', 'days': 3*30}  # 60 bulan
         }
         
         charts = []
+        timeframe_scores = {}
         
         for tf_name, tf_config in timeframes.items():
             try:
@@ -401,7 +402,9 @@ async def cmd_calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Kirim charts
         if charts:
             await loading_msg.edit_text(f"✅ Analisis {symbol} selesai! Mengirim charts...")
-            
+            combined_scores = list(timeframe_scores.values())
+            if combined_scores:
+               average_score = sum(combined_scores) / len(combined_scores)
             for tf_name, chart_buffer in charts:
                 await update.message.reply_photo(
                     photo=chart_buffer,
@@ -410,6 +413,7 @@ async def cmd_calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Kirim ringkasan
             latest_score = final_score.iloc[-1] if len(final_score) > 0 else 0
+            timeframe_scores[tf_name] = latest_score
             
             interpretation = ""
             if latest_score > 5:
@@ -424,15 +428,19 @@ async def cmd_calculate(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 interpretation = "⚫ STRONG SELL"
             
             summary = f"""
-📊 **{symbol} Analysis Summary**
+📊 {symbol} Analysis Summary**
 
-🎯 **Nilai*: {latest_score:.2f}
-📈 **Recommendation**: {interpretation}
+📈 Daily Value {timeframe_scores.get('Daily', 0):.2f}
+📈 Weekly Value {timeframe_scores.get('Weekly', 0):.2f}  
+📈 Monthly Value {timeframe_scores.get('Monthly', 0):.2f}
 
-⚠️ **Disclaimer**: Ini hanya analisis teknikal dan bukan saran investasi. Selalu lakukan riset mandiri sebelum berinvestasi.
+🎯 Combined Average Value: {average_score:.2f}
+📈 Final Recommendation: {interpretation}
+
+⚠️*Disclaimer: Ini hanya analisis teknikal dan bukan saran investasi. Selalu lakukan riset mandiri sebelum berinvestasi.
             """
             
-            await update.message.reply_text(summary, parse_mode='Markdown')
+            await update.message.reply_text(summary)
             
         else:
             await loading_msg.edit_text(f"❌ Gagal menganalisis {symbol}. Pastikan symbol valid.")
