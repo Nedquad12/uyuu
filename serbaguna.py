@@ -521,6 +521,17 @@ class TelegramStockDataViewer:
                 elif cap_filter == 'micro':
                     filtered_stocks = filtered_stocks[filtered_stocks['Market Cap'] < 80e9]  # <80M
         
+            # 🔥 Hitung Net Foreign 60 hari ke belakang
+            foreign_60d = (
+                self.watchlist_data.groupby('Kode Saham')
+                .apply(lambda x: (x.sort_values('Date', ascending=False).head(60)['Foreign Buy'].sum() -
+                         x.sort_values('Date', ascending=False).head(60)['Foreign Sell'].sum()))
+                .reset_index(name='Net Foreign 60D')
+              )
+
+           # Gabungkan hasil ke filtered_stocks
+            filtered_stocks = filtered_stocks.merge(foreign_60d, on='Kode Saham', how='left')
+
             return filtered_stocks.to_dict('records')
         
         except Exception as e:
@@ -966,16 +977,24 @@ Change: {mv_arrow} ${mv_change:+,.0f} ({mv_change_pct:+.2f}%)"""
             'low': 'Low Cap (≥80M)',
             'micro': 'Micro Cap (<80M)'
        }
+        net_foreign_today = stock.get('Net Foreign', 0)
+        foreign_arrow = "🔺" if net_foreign_today > 0 else "🔻" if net_foreign_today < 0 else "➡️"
+
+        net_foreign_60d = stock.get('Net Foreign 60D', 0)
+        foreign_60d_arrow = "🔺" if net_foreign_60d > 0 else "🔻" if net_foreign_60d < 0 else "➡️"
     
         response = f"📊 WATCHLIST STOCKS"
         if cap_filter:
             response += f" - {cap_names.get(cap_filter, cap_filter.upper())}"
     
-        response += f"\n\n🔍 Saham Watchlist\nNote: Bukan ajakan jual dan beli\n"
-        response += f"📈 Avg Volume: {self.watchlist_averages['avg_volume']:,.0f}\n"
-        response += f"📈 Avg Frekuensi: {self.watchlist_averages['avg_frekuensi']:,.0f}\n"
-        response += f"📊 Threshold: Vol≥{self.watchlist_averages['avg_volume']*1.7:,.0f}, Freq≥{self.watchlist_averages['avg_frekuensi']*1.7:,.0f}\n\n"
-    
+        response += f"{i}. {stock['Kode Saham']}\n"
+        response += f"   💰 Price: {stock['Penutupan']:,.0f}\n"
+        response += f"   📊 Cap: {cap_str}\n"
+        response += f"   📈 Vol: {stock['Volume']:,.0f}\n"
+        response += f"   🔄 Freq: {stock['Frekuensi']:,.0f}\n"
+        response += f"   {foreign_arrow} Net Foreign: {net_foreign_today:+,.0f}\n"
+        response += f"   {foreign_60d_arrow} Net Foreign 60D: {net_foreign_60d:+,.0f}\n\n"
+        
         # Sort by market cap descending
         stocks_sorted = sorted(stocks, key=lambda x: x['Market Cap'], reverse=True)
      
@@ -1086,7 +1105,7 @@ Perintah untuk IHSG
 /help - Memanggil pesan ini
 /search [CODE] - Search untuk data holding saham
 /export [CODE] - Export data ke Excel
-/chart - Membuat 
+/chart - Membuat chart kepemilikan
 /g - Pergerakan saham harian
 /wl - Watchlist saham
 /m [CODE] - Menampikan data transaksi Margin
@@ -1599,6 +1618,7 @@ def handle_watchlist_filter(call):
     cap_filter = call.data[3:]  # Remove 'wl_' prefix
     
     try:
+        bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
         bot.answer_callback_query(call.id, "🔍 Analyzing stocks...")
         
         # Get stocks based on filter
@@ -1608,21 +1628,111 @@ def handle_watchlist_filter(call):
         # Format and send response
         response = viewer.format_watchlist_response(stocks, filter_param)
         
-        # Send response (split if too long)
-        if len(response) > 4096:
-            # Split response into chunks
-            chunks = [response[i:i+4096] for i in range(0, len(response), 4096)]
-            for chunk in chunks:
-                bot.send_message(call.message.chat.id, chunk)
-        else:
-            bot.send_message(call.message.chat.id, response)
-            
-            viewer.watchlist_data = None
-        
+        # Split response jadi halaman-halaman (maks 4000 karakter per halaman)
+        page_size = 4000
+        pages = [response[i:i + page_size] for i in range(0, len(response), page_size)]
+
+        if not pages:
+            bot.send_message(call.message.chat.id, "❌ Tidak ada data.")
+            return
+
+        # Kirim halaman pertama + tombol next jika ada halaman berikutnya
+        msg = bot.send_message(call.message.chat.id, pages[0])
+
+        if len(pages) > 1:
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("📄 Next (2)", callback_data=f"wl_page_{cap_filter}_1"))
+            bot.edit_message_reply_markup(chat_id=msg.chat.id, message_id=msg.message_id, reply_markup=markup)
+
     except Exception as e:
         bot.answer_callback_query(call.id, f"❌ Error: {str(e)}")
         logger.error(f"Error in watchlist filter: {e}")
     
+    
+@bot.message_handler(commands=['ff'])
+@whitelist_only
+@queued_handler
+@cooldown(seconds=5)
+def free_float_summary(message):
+    log_user_activity(message.from_user.id, message.from_user.username or "Unknown", "ff")
+    try:
+        folder_path = "/home/nedquad12/database/foreign"
+        excel_files = sorted(glob.glob(os.path.join(folder_path, "*.xlsx")), reverse=True)
+        if not excel_files:
+            bot.reply_to(message, f"❌ Tidak ada file Excel di folder `{folder_path}`.")
+            return
+
+        latest_file = excel_files[0]
+        df = pd.read_excel(latest_file)
+
+        required_cols = ['Kode Saham', 'Weight For Index', 'Penutupan', 'Listed Shares']
+        if not all(col in df.columns for col in required_cols):
+            bot.reply_to(message, f"❌ Kolom {required_cols} tidak ditemukan di file Excel.")
+            return
+
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.reply_to(message, "❌ Masukan kode saham.\nContoh: `/ff BBCA`", parse_mode='Markdown')
+            return
+
+        code = parts[1].upper()
+        stock = df[df['Kode Saham'].str.upper() == code]
+
+        if stock.empty:
+            bot.reply_to(message, f"❌ Saham {code} tidak ditemukan.")
+            return
+
+        weight_index = stock['Weight For Index'].values[0]
+        penutupan = stock['Penutupan'].values[0]
+        listed_shares = stock['Listed Shares'].values[0]
+
+        # Hitung Free Float Value
+        ff_value = weight_index * penutupan
+        ff_percent = (weight_index / listed_shares) * 100
+
+        # Format nilai
+        def format_value(val):
+            if val >= 1e12:
+                return f"{val/1e12:.0f}T"
+            elif val >= 1e9:
+                return f"{val/1e9:.1f}B"
+            elif val >= 1e6:
+                return f"{val/1e6:.1f}M"
+            else:
+                return f"{val:.0f}"
+
+        ff_value_str = format_value(ff_value)
+
+        # Bandingkan dengan MSCI
+        kurs = 16300
+        min_value_15 = 5500e9  # Rp5500B
+        min_value_low_ff = 8400e9  # Rp8400B
+
+        meets_value = ff_value * kurs >= min_value_15
+        meets_ff = ff_percent >= 15
+
+        if meets_ff and meets_value:
+            status = "✅ Memenuhi syarat MSCI (Rp5500B, FF≥15%)"
+        elif not meets_ff and ff_value * kurs >= min_value_low_ff:
+            status = "⚠️ FF <15%, tapi nilai >Rp8400B (potensi eligible)"
+        else:
+            status = "❌ Belum memenuhi syarat MSCI"
+
+        response = (
+            f"📊 Free Float Summary for {code}\n"
+            f"💰 FF Value: {ff_value_str}\n"
+            f"📈 Free Float: {ff_percent:.2f}%\n"
+            f"{status}"
+        )
+        bot.reply_to(message, response)
+        
+        del df
+        gc.collect()
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {str(e)}")
+        logger.error(f"Error in /ff command: {e}")
+
 if __name__ == "__main__":
     print("🤖 Bot started successfully!")
     print(f"📁 Data folder: {viewer.data_folder}")
