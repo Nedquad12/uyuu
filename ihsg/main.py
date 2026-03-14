@@ -13,6 +13,7 @@ from telegram.constants import ParseMode
 from excel_reader import get_excel_files, excel_to_json
 from admin.auth import load_roles, is_authorized_user, is_vip_user
 from admin.admin_command import get_admin_conversation_handler
+from user_info import get_id_pengguna
 
 logging.basicConfig(
     level=logging.INFO,
@@ -161,6 +162,7 @@ def main():
     app.add_handler(CommandHandler("help",  cmd_help))
     app.add_handler(CommandHandler("skor",  cmd_skor))
     app.add_handler(CommandHandler("4",     cmd_reload))
+    app.add_handler(CommandHandler("id",    get_id_pengguna))
 
     # ConversationHandler untuk panel admin (/admin login → menu)
     app.add_handler(get_admin_conversation_handler())
